@@ -28,7 +28,7 @@
 #include <util/delay.h>
 #include "UARTLibrary.h"  // Double quotes for local library.
 
-#define BAUDRATE 9600 // standard values from 1200 to 115200
+#define BAUDRATE 1200 // standard values from 1200 to 115200
 #define DATABITS    8 // 5-8
 #define STOPBITS    1 // 1,2
 #define PARITY      0 // 0=none, 1=odd, 2=even
@@ -52,10 +52,89 @@ int main(void)
 	 */
 
 	uart_init(BAUDRATE, DATABITS, STOPBITS, PARITY);
+	
+	DDRA |= (1<< DDA0);
+	PORTA |= (1 << PORTA0);
+	
+	uart_tx(CR);
+	uart_tx(LF);
+	uart_tx(CR);
+	uart_tx(LF);
+	
+	UART_Write_String("RS232 Communications Server\r\n");
+	UART_Write_String("Status: Active\r\n");
+	UART_Write_String("Andrew Firestone\r\n");
+	UART_Write_String("EECE3624\r\n");
+	UART_Write_String("Fall 2026\r\n");
+	
+	
+	uart_tx(CR);
+	uart_tx(LF);
+	uart_tx(CR);
+	uart_tx(LF);
+	
+	unsigned char c;
+	int count;
+	
 	while(1)
 	{
-		/* your loop code here */
+		c=0;
+		
+		c = uart_rx();
+		
+		
+		
+		if (c == ESC){
+			UART_Write_String("\r\nRS232 Communications Server\r\n");
+			UART_Write_String("Status: Active\r\n");
+			UART_Write_String("Andrew Firestone\r\n");
+			UART_Write_String("EECE3624\r\n");
+			UART_Write_String("Fall 2026\r\n");
+			continue;
+		}
+		
+		if (c == CR){
+			uart_tx(CR);
+			uart_tx(LF);
+		}
+		else{
+			uart_tx(c);
+		}
+		
+		if (c == 'e'){
+			count = 1;
+		}
+		else if (count == 1 & c == 'n'){
+			count ++;
+		}
+		else if(count == 2 & c == 'd'){
+			count ++;
+		}
+		else{
+			count = 0;
+		}
+		
+		if(c != 0){
+			PORTA &= ~(1 << PORTA0);
+			_delay_ms(75);
+			PORTA |= (1 << PORTA0);
+		}
+		
+		if (count == 3){
+			UART_Write_String("\r\n\r\nBye\r\n");
+			while (1){
+				
+			}
+		}
+		
 		
 	}
 	return 0;
+}
+
+void UART_Write_String(char *str) {
+    while (*str != '\0') {      // Loop until the end of the string
+        uart_tx(*str);  // Send the current character
+        str++;                  // Move to the next character pointer
+    }
 }
