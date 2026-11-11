@@ -33,11 +33,14 @@
 #define STOPBITS    1 // 1,2
 #define PARITY      0 // 0=none, 1=odd, 2=even
 
-/* Your code here.  */
+/*
+ * Corrected function declaration for the custom UART string helper.
+ * This avoids compiler warnings/errors from using a function before it is declared.
+ */
+void UART_Write_String(char *str);
 
 int main(void)
 {
-	/* Your code here.  */
 
     /* See the UARTLibrary.h for available calls.
 	 *     	  // initialize the UART
@@ -74,25 +77,34 @@ int main(void)
 	uart_tx(LF);
 	
 	unsigned char c;
-	int count;
+	int count = 0;
 	
 	while(1)
 	{
-		c=0;
-		
 		c = uart_rx();
 		
-		
-		
+		/*
+		 * ESC reset: reset the 'end' detection state and redisplay the title text.
+		 * This makes the server restart cleanly instead of carrying an old match state.
+		 */
+		/*
+		 * ESC pressed: restart the terminal display and reset the 'end' sequence tracker.
+		 * This prevents stale input from triggering the shutdown sequence after a reset.
+		 */
 		if (c == ESC){
 			UART_Write_String("\r\nRS232 Communications Server\r\n");
 			UART_Write_String("Status: Active\r\n");
 			UART_Write_String("Andrew Firestone\r\n");
 			UART_Write_String("EECE3624\r\n");
 			UART_Write_String("Fall 2026\r\n");
-			continue;
+			count = 0;  // clear the 'end' detection state
+			continue;   // restart the loop without echoing the ESC key
 		}
 		
+		/*
+		 * Carriage return handling: send both CR and LF so the terminal lines up properly.
+		 * Any other character is echoed back to the user exactly as received.
+		 */
 		if (c == CR){
 			uart_tx(CR);
 			uart_tx(LF);
@@ -101,20 +113,25 @@ int main(void)
 			uart_tx(c);
 		}
 		
+		/*
+		 * Corrected sequence check for the 'end' command.
+		 * The original code used bitwise '&' instead of logical '&&'.
+		 * Using '&' caused incorrect comparisons and prevented proper detection.
+		 */
 		if (c == 'e'){
 			count = 1;
 		}
-		else if (count == 1 & c == 'n'){
-			count ++;
+		else if (count == 1 && c == 'n'){
+			count++;
 		}
-		else if(count == 2 & c == 'd'){
-			count ++;
+		else if (count == 2 && c == 'd'){
+			count++;
 		}
 		else{
 			count = 0;
 		}
 		
-		if(c != 0){
+		if (c != 0){
 			PORTA &= ~(1 << PORTA0);
 			_delay_ms(75);
 			PORTA |= (1 << PORTA0);
@@ -123,11 +140,9 @@ int main(void)
 		if (count == 3){
 			UART_Write_String("\r\n\r\nBye\r\n");
 			while (1){
-				
+				;
 			}
 		}
-		
-		
 	}
 	return 0;
 }
